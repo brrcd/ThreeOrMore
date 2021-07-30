@@ -23,9 +23,39 @@ function Config:GetThemeColor()
 	return c.r, c.g, c.b, c.hex;
 end
 
-local FIELDSIZE = 5;
-local ROWSCOUNT = FIELDSIZE;
-local COLUMNSCOUNT = FIELDSIZE;
+------------------------------------------------------------------------
+
+local FIELD_SIZE = 5;
+local ROWS_COUNT = FIELD_SIZE+1;
+local COLUMNS_COUNT = FIELD_SIZE+3;
+
+Race = {
+    getRace = function (index)
+        return Race[index];
+    end,
+    "Orc",
+    "Elf",
+    "Undead",
+    "Human",
+    "Tauren",
+    "Draenei",
+    "BloodElf",
+    "Gnome"
+};
+
+Face = {
+	getFaceImage = function (index)
+		return Face[index];
+	end,
+	"interface/icons/inv_mushroom_11",
+	"interface/icons/inv_mushroom_12",
+	"interface/icons/inv_mushroom_13",
+	"interface/icons/inv_mushroom_09",
+	"interface/icons/inv_mushroom_08",
+	"interface/icons/inv_mushroom_07",
+	"interface/icons/inv_mushroom_06",
+	"interface/icons/inv_mushroom_10"
+};
 
 function Config:CreateButton(point, relativeFrame, relativePoint, xOffset, yOffset, text)
 	local btn = CreateFrame("Button", nil, UIConfig, "GameMenuButtonTemplate");
@@ -37,54 +67,106 @@ function Config:CreateButton(point, relativeFrame, relativePoint, xOffset, yOffs
 	return btn;
 end
 
-local isCursorChanged = false;
-
 function Config:CreateMenu()
 	--main frame
 	UIConfig = CreateFrame("Frame", "ThreeOrMoreMasterFrame", UIParent, "ButtonFrameTemplate");
 	UIConfig:SetSize(400, 400);
 	UIConfig:SetPoint("CENTER");
 
-	--game field frame
+	--game field frame for where we placing our cells
 	local GameWindow = CreateFrame("Frame", "GameWindowFrame", UIConfig, "ThinBorderTemplate");
 	GameWindow:SetSize(388, 312);
 	GameWindow:SetPoint("CENTER", -1, -18);
 
+	FieldCells = {};
+
+	-- CreateCell = function(xOffset, yOffset, index)
+	-- 	local race = Race.getRace(index);
+	-- 	--getting first character of race as face
+	-- 	local face = string.sub(race,1,1);
+
+	-- 	local cell = CreateFrame("Button", nil, GameWindow, "MultiBarButtonTemplate");
+	-- 	local texture = cell:CreateTexture();
+	
+	-- 	cell:SetPoint("CENTER", GameWindow, "TOPLEFT", xOffset, yOffset);
+	-- 	cell:EnableMouse(true);
+	-- 	cell:RegisterForDrag("LeftButton", "RightButton");
+		
+	-- 	texture:SetAllPoints();
+	-- 	texture:SetTexture(Face.getFaceImage(index));
+
+	-- 	cell:SetScript("OnClick", function()
+	-- 		ActionButton_ShowOverlayGlow(self)
+	-- 		print("clicked", face);
+	-- 	end)
+	
+	-- 	return {
+	-- 		getRace = function (self)
+	-- 			return race;
+	-- 		end,
+	-- 		getFace = function (self)
+	-- 			return face;
+	-- 		end
+	-- 	};
+	-- end
+
 	CreateCell = function(xOffset, yOffset)
+		local race;
+		local face;
 		local cell = CreateFrame("Button", nil, GameWindow, "MultiBarButtonTemplate");
 		local texture = cell:CreateTexture();
-		local cursor;
 	
 		cell:SetPoint("CENTER", GameWindow, "TOPLEFT", xOffset, yOffset);
 		cell:EnableMouse(true);
 		cell:RegisterForDrag("LeftButton", "RightButton");
-		
-		texture:SetAllPoints();
-		texture:SetTexture("interface/icons/inv_mushroom_11")
 
 		cell:SetScript("OnClick", function()
 			ActionButton_ShowOverlayGlow(self)
+			print("clicked", face);
 		end)
-	
-		return cell;
+
+		return {
+			setRace = function (self)
+				local randomNumber = math.random(#Race);
+				race = Race.getRace(randomNumber);
+				face = string.sub(race,1,1);
+				texture:SetAllPoints();
+				texture:SetTexture(Face.getFaceImage(randomNumber));
+			end,
+			getRace = function (self)
+				return race;
+			end,
+			getFace = function (self)
+				return face;
+			end
+		}
 	end
 	
-	CreateGameField = function(columnsCount, rowsCount)
+	CreateEmptyField = function(rowsCount, columnsCount)
 		local cellWidth = 40;
 		local xOffset = 23;
 		local yOffset = -23;
+		local counter = 0;
 	
-		for y = rowsCount, 1, -1 do
-			for x = columnsCount, 1, -1 do
-				UIConfig.cell = CreateCell(xOffset, yOffset);
+		for y = 0, rowsCount, 1 do
+			for x = 0, columnsCount, 1 do
+				FieldCells[counter] = CreateCell(xOffset, yOffset);
 				xOffset = xOffset + cellWidth;
+				counter = counter + 1;
 			end
 			yOffset = yOffset - cellWidth;
 			xOffset = 23;
 		end
 	end
 
-	UIConfig.gameField = CreateGameField(ROWSCOUNT, COLUMNSCOUNT);
+	FillFieldWithRaces = function()
+		for x = #FieldCells, 0, -1 do
+			FieldCells[x].setRace();
+		end;
+	end
+
+	UIConfig.emptyField = CreateEmptyField(ROWS_COUNT, COLUMNS_COUNT);
+	--UIConfig.filledField = FillFieldWithRaces();
 
 	--making main frame movable
 	UIConfig:SetMovable(true);
@@ -103,6 +185,9 @@ function Config:CreateMenu()
 
 	--bottom buttons
 	UIConfig.loadButton = self:CreateButton("CENTER", UIConfig, "BOTTOM", -125, 15, "Start game");
+	UIConfig.loadButton:SetScript("OnClick", function()
+		FillFieldWithRaces()
+	end);
 	UIConfig.resetButton = self:CreateButton("CENTER", UIConfig, "BOTTOM", 0, 15, "Reset");
     UIConfig.saveButton = self:CreateButton("CENTER", UIConfig, "BOTTOM", 125, 15, "Hello");
     

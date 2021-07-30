@@ -64,28 +64,4 @@ GameField = {
             prevColumnCell[x] = GameField[x].getFace();
         end
     end,
-
-    print = function ()
-        local count = 0;
-        for x = 1, ROW_COUNT*COLUMN_COUNT, 1 do
-            io.write(GameField[x].getFace())
-            count = count + 1;
-            if (count == COLUMN_COUNT) then
-                print("");
-                count = 0;
-            end
-        end
-    end,
-
-    swap = function (x, y)
-        local temp = GameField[x];
-        GameField[x] = GameField[y];
-        GameField[y] = temp;
-    end
 }
-
-GameField.initialFill();
-GameField.print();
-GameField.swap(5,10);
-print("");
-GameField.print();
