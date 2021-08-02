@@ -34,27 +34,42 @@ Race = {
         return Race[index];
     end,
     "Orc",
-    "Elf",
+    "NightElf",
     "Undead",
     "Human",
     "Tauren",
     "Draenei",
     "BloodElf",
-    "Gnome"
+    "Gnome",
+	"Troll",
+	"Dwarf"
 };
 
+-- SORT RACES CORRECTLY
 Face = {
 	getFaceImage = function (index)
 		return Face[index];
 	end,
-	"interface/icons/inv_mushroom_11",
-	"interface/icons/inv_mushroom_12",
-	"interface/icons/inv_mushroom_13",
-	"interface/icons/inv_mushroom_09",
-	"interface/icons/inv_mushroom_08",
-	"interface/icons/inv_mushroom_07",
-	"interface/icons/inv_mushroom_06",
-	"interface/icons/inv_mushroom_10"
+	-- "interface/addons/threeormore/art/orc",
+	-- "interface/addons/threeormore/art/nightelf",
+	-- "interface/addons/threeormore/art/undead",
+	-- "interface/addons/threeormore/art/human",
+	-- "interface/addons/threeormore/art/tauren",
+	-- "interface/addons/threeormore/art/draenei",
+	-- "interface/addons/threeormore/art/bloodelf",
+	-- "interface/addons/threeormore/art/gnome",
+	-- "interface/addons/threeormore/art/troll",
+	-- "interface/addons/threeormore/art/dwarf"
+	"interface/addons/threeormore/art/orc_bg",
+	"interface/addons/threeormore/art/nightelf_bg",
+	"interface/addons/threeormore/art/undead_bg",
+	"interface/addons/threeormore/art/human_bg",
+	"interface/addons/threeormore/art/tauren_bg",
+	"interface/addons/threeormore/art/draenei_bg",
+	"interface/addons/threeormore/art/bloodelf_bg",
+	"interface/addons/threeormore/art/gnome_bg",
+	"interface/addons/threeormore/art/troll_bg",
+	"interface/addons/threeormore/art/dwarf_bg"
 };
 
 function Config:CreateButton(point, relativeFrame, relativePoint, xOffset, yOffset, text)
@@ -81,7 +96,6 @@ function Config:CreateMenu()
 	GameWindow:SetPoint("CENTER", -1, -18);
 	GameWindow:Hide();
 
-	--TODO: NOT WORKING, NEED TO PASS PARENT TO WORK
 	--glow effect for our button
 	local GlowButton = function (parent)
 		GlowButtonEffect = CreateFrame("Frame", "GlowEffect", parent, "GlowBorderTemplate");
@@ -98,17 +112,75 @@ function Config:CreateMenu()
 	FieldCells = {};
 	CellsArray = {};
 
-	local firstRaceIndex;
-	local secondRaceIndex;
-	local firstCellIndex;
-	local secondCellIndex;
-	local glowButton
+	local swap_two_cells = function (fc, sc, fr, sr)
+		print("Начало смены клеток.");
+		FieldCells[fc].setRace(sr);
+		FieldCells[sc].setRace(fr);
+		print("Конец смены клеток.");
+	end
+
+	local chk_col_top = function (f_index, s_index)
+		return FieldCells[s_index+COLUMNS_COUNT+1].getRace() ==
+		FieldCells[s_index+2*(COLUMNS_COUNT+1)].getRace() and
+		FieldCells[s_index+2*(COLUMNS_COUNT+1)].getRace() ==
+		FieldCells[f_index].getRace();
+	end
+
+	local chk_col_mid = function (f_index, s_index)
+		return FieldCells[s_index-COLUMNS_COUNT-1].getRace() ==
+		FieldCells[s_index+COLUMNS_COUNT+1].getRace() and
+		FieldCells[s_index+COLUMNS_COUNT+1].getRace() ==
+		FieldCells[f_index].getRace();
+	end
+
+	local chk_col_bot = function (f_index, s_index)
+		return FieldCells[s_index-COLUMNS_COUNT-1].getRace() ==
+		FieldCells[s_index-2*(COLUMNS_COUNT+1)].getRace() and
+		FieldCells[s_index-2*(COLUMNS_COUNT+1)].getRace() ==
+		FieldCells[f_index].getRace();
+	end
+
+	local chk_horizontal = function (f_c, s_c, f_r, s_r)
+		--if we swap at first row to prevent crash
+		if (s_c <= COLUMNS_COUNT) then
+			if(chk_col_top(f_c, s_c)) then
+				swap_two_cells(f_c,s_c,f_r,s_r);
+			end
+		--same for last
+		elseif (s_c >= ((COLUMNS_COUNT+1) * ROWS_COUNT)) then
+			if(chk_col_bot(f_c, s_c)) then
+				swap_two_cells(f_c,s_c,f_r,s_r);
+			end
+		--second from top
+		elseif (s_c > COLUMNS_COUNT and s_c < ((COLUMNS_COUNT+1)*2)) then
+			if(chk_col_top(f_c, s_c) or chk_col_mid(f_c, s_c)) then
+				swap_two_cells(f_c,s_c,f_r,s_r);
+			end
+		--second from bot
+		elseif (s_c >= ((COLUMNS_COUNT+1) * (ROWS_COUNT-1)) and
+			s_c < ((COLUMNS_COUNT+1) * ROWS_COUNT)) then
+			if(chk_col_mid(f_c, s_c) or chk_col_bot(f_c, s_c)) then
+				swap_two_cells(f_c,s_c,f_r,s_r);
+			end
+		elseif (chk_col_top(f_c, s_c) or
+			chk_col_mid(f_c, s_c) or
+			chk_col_bot(f_c, s_c)) then
+				swap_two_cells(f_c,s_c,f_r,s_r);
+		else
+			print("Нет клеток той же расы(чтобы получилось три в ряд).")
+		end
+	end
+
+	local f_R;
+	local s_R;
+	local f_C;
+	local s_C;
+	local glow_button
 
 	CreateCell = function(xOffset, yOffset, n)
 		local race;
-		local face;
 		local index = n;
-		local raceIndex;
+		local index_RACE;
 		Cell = CreateFrame("Button", nil, UIConfig, "MultiBarButtonTemplate");
 		local texture = Cell:CreateTexture();
 		local cell = Cell;
@@ -122,54 +194,53 @@ function Config:CreateMenu()
 			ActionButton_ShowOverlayGlow(self);
 
 			--this one swaps cells
-			if (firstRaceIndex == nil) then
-				firstRaceIndex = raceIndex;
-				firstCellIndex = index;
-				glowButton = GlowButton(CellsArray[index]);
-				print("first cell");
-			elseif (firstRaceIndex ~= nil and secondRaceIndex == nil) then
-				secondRaceIndex = raceIndex;
-				secondCellIndex = index;
-				glowButton.hideGlow();
-				print("second cell");
+			if (f_R == nil) then
+				f_R = index_RACE;
+				f_C = index;
+				--creating glow effect on first click
+				glow_button = GlowButton(CellsArray[index]);
+				print("Первая клетка расы :", race, ". Под индексом :", index);
+			elseif (f_R ~= nil and s_R == nil) then
+				s_R = index_RACE;
+				s_C = index;
+				--hiding glow effect on second click
+				glow_button.hideGlow();
+				print("Вторая клетка расы :", race, ". Под индексом :", index);
 
 				--checking if we clicking neighbour cells
-				if (math.abs(firstCellIndex - secondCellIndex) == 1 or
-				math.abs(firstCellIndex - secondCellIndex) == (COLUMNS_COUNT + 1)) then
-					print("start swap");
-					FieldCells[firstCellIndex].setRace(secondRaceIndex);
-					FieldCells[secondCellIndex].setRace(firstRaceIndex);
-					print("good?");
+				if (math.abs(f_C - s_C) == 1 or
+				math.abs(f_C - s_C) == (COLUMNS_COUNT + 1)) then
+					--if we swap from right to left
+					if (f_C - s_C == 1) then
+						chk_horizontal(f_C, s_C, f_R, s_R);
+					elseif (f_C - s_C == -1) then
+						chk_horizontal(f_C, s_C, f_R, s_R);
+					end
 				else
 					print("select other cell")
 				end;
 
-				firstRaceIndex = nil;
-				secondRaceIndex = nil;
+				f_R = nil;
+				s_R = nil;
 			end
 		end)
 
 		return {
 			setRandomRace = function (self)
-				local randomNumber = math.random(#Race);
-				race = Race.getRace(randomNumber);
-				face = string.sub(race,1,1);
-				raceIndex = randomNumber;
+				local rand_num = math.random(#Race);
+				race = Race.getRace(rand_num);
+				index_RACE = rand_num;
 				texture:SetAllPoints();
-				texture:SetTexture(Face.getFaceImage(randomNumber));
+				texture:SetTexture(Face.getFaceImage(rand_num));
 			end,
-			setRace = function (raceNum)
-				race = Race.getRace(raceNum);
-				face = string.sub(race,1,1);
-				raceIndex = raceNum;
+			setRace = function (race_index)
+				race = Race.getRace(race_index);
+				index_RACE = race_index;
 				texture:SetAllPoints();
-				texture:SetTexture(Face.getFaceImage(raceNum));
+				texture:SetTexture(Face.getFaceImage(race_index));
 			end,
 			getRace = function (self)
 				return race;
-			end,
-			getFace = function (self)
-				return face;
 			end
 		}
 	end
@@ -239,15 +310,14 @@ function Config:CreateMenu()
 	UIConfig.loadButton:SetSize(90, 20);
 	UIConfig.loadButton:SetScript("OnClick", function()
 		FillFieldWithRaces();
-		firstRaceIndex = nil;
-		secondRaceIndex = nil;
+		f_R = nil;
+		s_R = nil;
 	end);
 	UIConfig.resetButton = self:CreateButton("CENTER", UIConfig, "BOTTOM", 0, 15, "Reset");
     UIConfig.helloButton = self:CreateButton("CENTER", UIConfig, "BOTTOM", 125, 15, "Hello");
 	UIConfig.helloButton:SetScript("OnClick", function ()
 		print("Зачем ты нажал сюда?");
 	end)
-    
 	UIConfig:Hide();
 	return UIConfig;
 end
