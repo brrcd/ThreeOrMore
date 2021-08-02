@@ -81,12 +81,28 @@ function Config:CreateMenu()
 	GameWindow:SetPoint("CENTER", -1, -18);
 	GameWindow:Hide();
 
+	--TODO: NOT WORKING, NEED TO PASS PARENT TO WORK
+	--glow effect for our button
+	local GlowButton = function (parent)
+		GlowButtonEffect = CreateFrame("Frame", "GlowEffect", parent, "GlowBorderTemplate");
+		GlowButtonEffect:SetSize(40, 40);
+		GlowButtonEffect:SetPoint("CENTER");
+
+		return{
+			hideGlow = function ()
+				GlowButtonEffect:Hide();
+			end
+		}
+	end
+
 	FieldCells = {};
+	CellsArray = {};
 
 	local firstRaceIndex;
 	local secondRaceIndex;
 	local firstCellIndex;
 	local secondCellIndex;
+	local glowButton
 
 	CreateCell = function(xOffset, yOffset, n)
 		local race;
@@ -95,6 +111,8 @@ function Config:CreateMenu()
 		local raceIndex;
 		Cell = CreateFrame("Button", nil, UIConfig, "MultiBarButtonTemplate");
 		local texture = Cell:CreateTexture();
+		local cell = Cell;
+		CellsArray[index] = cell;
 	
 		Cell:SetPoint("CENTER", GameWindow, "TOPLEFT", xOffset, yOffset);
 		Cell:EnableMouse(true);
@@ -102,15 +120,21 @@ function Config:CreateMenu()
 
 		Cell:SetScript("OnClick", function()
 			ActionButton_ShowOverlayGlow(self);
+
+			--this one swaps cells
 			if (firstRaceIndex == nil) then
 				firstRaceIndex = raceIndex;
 				firstCellIndex = index;
-				print("first cell", firstRaceIndex, firstCellIndex);
+				glowButton = GlowButton(CellsArray[index]);
+				print("first cell");
 			elseif (firstRaceIndex ~= nil and secondRaceIndex == nil) then
 				secondRaceIndex = raceIndex;
 				secondCellIndex = index;
-				print("second cell", secondRaceIndex, secondCellIndex);
-				if (math.abs(firstCellIndex - secondCellIndex) == 1 or 
+				glowButton.hideGlow();
+				print("second cell");
+
+				--checking if we clicking neighbour cells
+				if (math.abs(firstCellIndex - secondCellIndex) == 1 or
 				math.abs(firstCellIndex - secondCellIndex) == (COLUMNS_COUNT + 1)) then
 					print("start swap");
 					FieldCells[firstCellIndex].setRace(secondRaceIndex);
@@ -119,6 +143,7 @@ function Config:CreateMenu()
 				else
 					print("select other cell")
 				end;
+
 				firstRaceIndex = nil;
 				secondRaceIndex = nil;
 			end
