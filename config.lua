@@ -50,16 +50,6 @@ Face = {
 	getFaceImage = function (index)
 		return Face[index];
 	end,
-	-- "interface/addons/threeormore/art/orc",
-	-- "interface/addons/threeormore/art/nightelf",
-	-- "interface/addons/threeormore/art/undead",
-	-- "interface/addons/threeormore/art/human",
-	-- "interface/addons/threeormore/art/tauren",
-	-- "interface/addons/threeormore/art/draenei",
-	-- "interface/addons/threeormore/art/bloodelf",
-	-- "interface/addons/threeormore/art/gnome",
-	-- "interface/addons/threeormore/art/troll",
-	-- "interface/addons/threeormore/art/dwarf"
 	"interface/addons/threeormore/art/orc_bg",
 	"interface/addons/threeormore/art/nightelf_bg",
 	"interface/addons/threeormore/art/undead_bg",
@@ -119,6 +109,7 @@ function Config:CreateMenu()
 		print("Конец смены клеток.");
 	end
 
+	--column checkin
 	local chk_col_top = function (f_index, s_index)
 		return FieldCells[s_index+COLUMNS_COUNT+1].getRace() ==
 		FieldCells[s_index+2*(COLUMNS_COUNT+1)].getRace() and
@@ -137,6 +128,28 @@ function Config:CreateMenu()
 		return FieldCells[s_index-COLUMNS_COUNT-1].getRace() ==
 		FieldCells[s_index-2*(COLUMNS_COUNT+1)].getRace() and
 		FieldCells[s_index-2*(COLUMNS_COUNT+1)].getRace() ==
+		FieldCells[f_index].getRace();
+	end
+
+	--row checking
+	local chk_row_left = function (f_index, s_index)
+		return FieldCells[s_index+1].getRace() ==
+		FieldCells[s_index+2].getRace() and
+		FieldCells[s_index+1].getRace() ==
+		FieldCells[f_index].getRace();
+	end
+
+	local chk_row_mid = function (f_index, s_index)
+		return FieldCells[s_index-1].getRace() ==
+		FieldCells[s_index+1].getRace() and
+		FieldCells[s_index+1].getRace() ==
+		FieldCells[f_index].getRace();
+	end
+
+	local chk_row_right = function (f_index, s_index)
+		return FieldCells[s_index-1].getRace() ==
+		FieldCells[s_index-2].getRace() and
+		FieldCells[s_index-1].getRace() ==
 		FieldCells[f_index].getRace();
 	end
 
@@ -167,7 +180,34 @@ function Config:CreateMenu()
 			chk_col_bot(f_c, s_c)) then
 				swap_two_cells(f_c,s_c,f_r,s_r);
 		else
-			print("Нет клеток той же расы(чтобы получилось три в ряд).")
+			print("horizontal")
+		end
+	end
+
+	local chk_vertical = function (f_c, s_c, f_r, s_r)
+		--if we swap at first column to prevent crash
+		if (math.fmod((s_c+(COLUMNS_COUNT+1)), (COLUMNS_COUNT+1)) == 0) then
+			if(chk_row_left(f_c, s_c)) then
+				swap_two_cells(f_c,s_c,f_r,s_r);
+			end
+		elseif (math.fmod((s_c+(COLUMNS_COUNT+1)), (COLUMNS_COUNT+1)) == 1) then
+			if(chk_row_left(f_c, s_c) or chk_row_mid(f_c, s_c)) then
+				swap_two_cells(f_c,s_c,f_r,s_r);
+			end
+		elseif (math.fmod((s_c+(COLUMNS_COUNT+1)), (COLUMNS_COUNT+1)) == (COLUMNS_COUNT-1)) then
+			if(chk_row_mid(f_c, s_c) or chk_row_right(f_c, s_c)) then
+				swap_two_cells(f_c,s_c,f_r,s_r);
+			end
+		elseif (math.fmod((s_c+(COLUMNS_COUNT+1)), (COLUMNS_COUNT+1)) == COLUMNS_COUNT) then
+			if(chk_row_right(f_c, s_c)) then
+				swap_two_cells(f_c,s_c,f_r,s_r);
+			end
+		elseif (chk_row_left(f_c, s_c) or
+			chk_row_mid(f_c, s_c) or
+			chk_row_right(f_c, s_c)) then
+				swap_two_cells(f_c,s_c,f_r,s_r);
+		else
+			print("vertical")
 		end
 	end
 
@@ -208,14 +248,9 @@ function Config:CreateMenu()
 				print("Вторая клетка расы :", race, ". Под индексом :", index);
 
 				--checking if we clicking neighbour cells
-				if (math.abs(f_C - s_C) == 1 or
-				math.abs(f_C - s_C) == (COLUMNS_COUNT + 1)) then
-					--if we swap from right to left
-					if (f_C - s_C == 1) then
-						chk_horizontal(f_C, s_C, f_R, s_R);
-					elseif (f_C - s_C == -1) then
-						chk_horizontal(f_C, s_C, f_R, s_R);
-					end
+				if (math.abs(f_C - s_C) == 1 or math.abs(f_C - s_C) == (COLUMNS_COUNT + 1)) then
+					chk_horizontal(f_C, s_C, f_R, s_R);
+					chk_vertical(f_C, s_C, f_R, s_R);
 				else
 					print("select other cell")
 				end;
