@@ -107,6 +107,7 @@ function Config:CreateMenu()
 	local master_cell;
 	local direction; --horizontal 0 or vertical 1 swap
 	local swap_done = false;
+	local master_cell_position; --top/left 0, mid 1 or bot/right 2
 
 	local swap_two_cells = function (fc, sc, fr, sr)
 		print("Начало смены клеток.");
@@ -120,6 +121,10 @@ function Config:CreateMenu()
 	--column checking for match three to allow swap
 		--if our cell is first from top check
 	local chk_col_top = function (f_index, s_index)
+		print(FieldCells[s_index+COL_X+1].getRace() ==
+		FieldCells[s_index+2*(COL_X+1)].getRace() and
+		FieldCells[s_index+2*(COL_X+1)].getRace() ==
+		FieldCells[f_index].getRace());
 		return FieldCells[s_index+COL_X+1].getRace() ==
 		FieldCells[s_index+2*(COL_X+1)].getRace() and
 		FieldCells[s_index+2*(COL_X+1)].getRace() ==
@@ -128,6 +133,10 @@ function Config:CreateMenu()
 
 		--if our cell is at middle
 	local chk_col_mid = function (f_index, s_index)
+		print(FieldCells[s_index-COL_X-1].getRace() ==
+		FieldCells[s_index+COL_X+1].getRace() and
+		FieldCells[s_index+COL_X+1].getRace() ==
+		FieldCells[f_index].getRace());
 		return FieldCells[s_index-COL_X-1].getRace() ==
 		FieldCells[s_index+COL_X+1].getRace() and
 		FieldCells[s_index+COL_X+1].getRace() ==
@@ -136,6 +145,10 @@ function Config:CreateMenu()
 
 		--if our cell is last from top check
 	local chk_col_bot = function (f_index, s_index)
+		print(FieldCells[s_index-COL_X-1].getRace() ==
+		FieldCells[s_index-2*(COL_X+1)].getRace() and
+		FieldCells[s_index-2*(COL_X+1)].getRace() ==
+		FieldCells[f_index].getRace());
 		return FieldCells[s_index-COL_X-1].getRace() ==
 		FieldCells[s_index-2*(COL_X+1)].getRace() and
 		FieldCells[s_index-2*(COL_X+1)].getRace() ==
@@ -144,6 +157,10 @@ function Config:CreateMenu()
 
 	--row checking
 	local chk_row_left = function (f_index, s_index)
+		print(FieldCells[s_index+1].getRace() ==
+		FieldCells[s_index+2].getRace() and
+		FieldCells[s_index+1].getRace() ==
+		FieldCells[f_index].getRace());
 		return FieldCells[s_index+1].getRace() ==
 		FieldCells[s_index+2].getRace() and
 		FieldCells[s_index+1].getRace() ==
@@ -151,6 +168,10 @@ function Config:CreateMenu()
 	end
 
 	local chk_row_mid = function (f_index, s_index)
+		print(FieldCells[s_index-1].getRace() ==
+		FieldCells[s_index+1].getRace() and
+		FieldCells[s_index+1].getRace() ==
+		FieldCells[f_index].getRace());
 		return FieldCells[s_index-1].getRace() ==
 		FieldCells[s_index+1].getRace() and
 		FieldCells[s_index+1].getRace() ==
@@ -158,6 +179,10 @@ function Config:CreateMenu()
 	end
 
 	local chk_row_right = function (f_index, s_index)
+		print(FieldCells[s_index-1].getRace() ==
+		FieldCells[s_index-2].getRace() and
+		FieldCells[s_index-1].getRace() ==
+		FieldCells[f_index].getRace());
 		return FieldCells[s_index-1].getRace() ==
 		FieldCells[s_index-2].getRace() and
 		FieldCells[s_index-1].getRace() ==
@@ -165,69 +190,119 @@ function Config:CreateMenu()
 	end
 
 	local chk_horizontal = function (f_c, s_c, f_r, s_r)
-		--if we swap at first row to prevent crash
-		if (s_c <= COL_X) then
-			if(chk_col_top(f_c, s_c)) then
-				swap_two_cells(f_c,s_c,f_r,s_r);
-				direction = 0;
+		if (swap_done == false) then
+			print("hori chk")
+			--if we swap at first row to prevent crash
+			if (s_c <= COL_X) then
+				if(chk_col_top(f_c, s_c)) then
+					print("hori 0");
+					swap_two_cells(f_c,s_c,f_r,s_r);
+					direction = 0;
+					master_cell_position = 0;
+				end
+			--same for last
+			elseif (s_c >= ((COL_X+1) * ROW_X)) then
+				if(chk_col_bot(f_c, s_c)) then
+					print("hori x");
+					swap_two_cells(f_c,s_c,f_r,s_r);
+					direction = 0;
+					master_cell_position = 2;
+				end
+			--second from top
+			elseif (s_c > COL_X and s_c < ((COL_X+1)*2)) then
+				if(chk_col_top(f_c, s_c) or chk_col_mid(f_c, s_c)) then
+					if (chk_col_top(f_c, s_c)) then
+						master_cell_position = 0;
+					elseif (chk_col_mid(f_c, s_c)) then
+						master_cell_position = 1;
+					end
+					print("hori 1");
+					swap_two_cells(f_c,s_c,f_r,s_r);
+					direction = 0;
+				end
+			--second from bot
+			elseif (s_c >= ((COL_X+1) * (ROW_X-1)) and
+				s_c < ((COL_X+1) * ROW_X)) then
+				if(chk_col_mid(f_c, s_c) or chk_col_bot(f_c, s_c)) then
+					if(chk_col_mid(f_c, s_c)) then
+						master_cell_position = 1;
+					elseif (chk_col_bot(f_c, s_c)) then
+						master_cell_position = 2;
+					end
+					print("hori x-1");
+					swap_two_cells(f_c,s_c,f_r,s_r);
+					direction = 0;
+				end
+			elseif (chk_col_top(f_c, s_c) or chk_col_mid(f_c, s_c) or chk_col_bot(f_c, s_c)) then
+				if(chk_col_top(f_c, s_c)) then
+					master_cell_position = 0;
+				elseif (chk_col_mid(f_c, s_c)) then
+					master_cell_position = 1;
+				elseif (chk_col_bot(f_c, s_c)) then
+					master_cell_position = 2;
+				end
+					print("hori 0-x");
+					swap_two_cells(f_c,s_c,f_r,s_r);
+					direction = 0;
 			end
-		--same for last
-		elseif (s_c >= ((COL_X+1) * ROW_X)) then
-			if(chk_col_bot(f_c, s_c)) then
-				swap_two_cells(f_c,s_c,f_r,s_r);
-				direction = 0;
-			end
-		--second from top
-		elseif (s_c > COL_X and s_c < ((COL_X+1)*2)) then
-			if(chk_col_top(f_c, s_c) or chk_col_mid(f_c, s_c)) then
-				swap_two_cells(f_c,s_c,f_r,s_r);
-				direction = 0;
-			end
-		--second from bot
-		elseif (s_c >= ((COL_X+1) * (ROW_X-1)) and
-			s_c < ((COL_X+1) * ROW_X)) then
-			if(chk_col_mid(f_c, s_c) or chk_col_bot(f_c, s_c)) then
-				swap_two_cells(f_c,s_c,f_r,s_r);
-				direction = 0;
-			end
-		elseif (chk_col_top(f_c, s_c) or
-			chk_col_mid(f_c, s_c) or
-			chk_col_bot(f_c, s_c)) then
-				swap_two_cells(f_c,s_c,f_r,s_r);
-				direction = 0;
 		end
 	end
 
 	local chk_vertical = function (f_c, s_c, f_r, s_r)
-		--first column
-		if (math.fmod((s_c+(COL_X+1)), (COL_X+1)) == 0) then
-			if(chk_row_left(f_c, s_c)) then
-				swap_two_cells(f_c,s_c,f_r,s_r);
-				direction = 1;
+		if (swap_done == false) then
+			print("vert chk")
+					--first column
+			if (math.fmod((s_c+(COL_X+1)), (COL_X+1)) == 0) then
+				if(chk_row_left(f_c, s_c)) then
+					print("vert 0");
+					swap_two_cells(f_c,s_c,f_r,s_r);
+					direction = 1;
+					master_cell_position = 0;
+				end
+			--second
+			elseif (math.fmod((s_c+(COL_X+1)), (COL_X+1)) == 1) then
+				if(chk_row_left(f_c, s_c) or chk_row_mid(f_c, s_c)) then
+					if (chk_row_left(f_c, s_c)) then
+						master_cell_position = 0;
+					elseif (chk_row_mid(f_c, s_c)) then
+						master_cell_position = 1;
+					end
+					print("vert 1");
+					swap_two_cells(f_c,s_c,f_r,s_r);
+					direction = 1;
+				end
+			--penult
+			elseif (math.fmod((s_c+(COL_X+1)), (COL_X+1)) == (COL_X-1)) then
+				if(chk_row_mid(f_c, s_c) or chk_row_right(f_c, s_c)) then
+					if (chk_row_mid(f_c, s_c)) then
+						master_cell_position = 1;
+					elseif (chk_row_right(f_c, s_c)) then
+						master_cell_position = 2;
+					end
+					print("vert x-1");
+					swap_two_cells(f_c,s_c,f_r,s_r);
+					direction = 1;
+				end
+			--last
+			elseif (math.fmod((s_c+(COL_X+1)), (COL_X+1)) == COL_X) then
+				if(chk_row_right(f_c, s_c)) then
+					print("vert x");
+					swap_two_cells(f_c,s_c,f_r,s_r);
+					direction = 1;
+					master_cell_position = 2;
+				end
+			elseif (chk_row_left(f_c, s_c) or chk_row_mid(f_c, s_c) or chk_row_right(f_c, s_c)) then
+				if(chk_row_left(f_c, s_c)) then
+					master_cell_position = 0;
+				elseif (chk_row_mid(f_c, s_c)) then
+					master_cell_position = 1;
+				elseif (chk_row_right(f_c, s_c)) then
+					master_cell_position = 2;
+				end
+					print("vert 0-x");
+					swap_two_cells(f_c,s_c,f_r,s_r);
+					direction = 1;
 			end
-		--second
-		elseif (math.fmod((s_c+(COL_X+1)), (COL_X+1)) == 1) then
-			if(chk_row_left(f_c, s_c) or chk_row_mid(f_c, s_c)) then
-				swap_two_cells(f_c,s_c,f_r,s_r);
-				direction = 1;
-			end
-		--penult
-		elseif (math.fmod((s_c+(COL_X+1)), (COL_X+1)) == (COL_X-1)) then
-			if(chk_row_mid(f_c, s_c) or chk_row_right(f_c, s_c)) then
-				swap_two_cells(f_c,s_c,f_r,s_r);
-				direction = 1;
-			end
-		--last
-		elseif (math.fmod((s_c+(COL_X+1)), (COL_X+1)) == COL_X) then
-			if(chk_row_right(f_c, s_c)) then
-				swap_two_cells(f_c,s_c,f_r,s_r);
-				direction = 1;
-			end
-		elseif (chk_row_left(f_c, s_c) or
-			chk_row_mid(f_c, s_c) or
-			chk_row_right(f_c, s_c)) then
-				swap_two_cells(f_c,s_c,f_r,s_r);
-				direction = 1;
 		end
 	end
 
@@ -267,21 +342,41 @@ function Config:CreateMenu()
 				print("Вторая клетка расы :", race, ". Под индексом :", index);
 
 				--checking if we clicking neighbour cells
-				if (math.abs(f_C - s_C) == 1 or math.abs(f_C - s_C) == (COL_X + 1)) then
+				if (math.abs(f_C - s_C) == 1 or math.abs(f_C - s_C) == (COL_X + 1) and swap_done == false) then
 					chk_horizontal(f_C, s_C, f_R, s_R);
 					chk_vertical(f_C, s_C, f_R, s_R);
 					chk_horizontal(s_C, f_C, s_R, f_R);
 					chk_vertical(s_C, f_C, s_R, f_R);
 					--TODO: fix nil exceptions
 					if(swap_done) then
-						if (direction == 0) then
+						print(direction);
+						print(master_cell_position);
+						if (direction == 0 and master_cell_position == 0) then
 							FieldCells[master_cell].setRandomRace();
 							FieldCells[master_cell+(COL_X+1)].setRandomRace();
 							FieldCells[master_cell+(2*(COL_X+1))].setRandomRace();
-						elseif (direction == 1) then
+						elseif (direction == 1 and master_cell_position == 0) then
 							FieldCells[master_cell].setRandomRace();
 							FieldCells[master_cell+1].setRandomRace();
 							FieldCells[master_cell+2].setRandomRace();
+						end
+						if (direction == 0 and master_cell_position == 1) then
+							FieldCells[master_cell].setRandomRace();
+							FieldCells[master_cell+(COL_X+1)].setRandomRace();
+							FieldCells[master_cell-(COL_X+1)].setRandomRace();
+						elseif (direction == 1 and master_cell_position == 1) then
+							FieldCells[master_cell].setRandomRace();
+							FieldCells[master_cell+1].setRandomRace();
+							FieldCells[master_cell-1].setRandomRace();
+						end
+						if (direction == 0 and master_cell_position == 2) then
+							FieldCells[master_cell].setRandomRace();
+							FieldCells[master_cell-(COL_X+1)].setRandomRace();
+							FieldCells[master_cell-(2*(COL_X+1))].setRandomRace();
+						elseif (direction == 1 and master_cell_position == 2) then
+							FieldCells[master_cell].setRandomRace();
+							FieldCells[master_cell-1].setRandomRace();
+							FieldCells[master_cell-2].setRandomRace();
 						end
 						swap_done = false;
 					end
@@ -296,7 +391,7 @@ function Config:CreateMenu()
 
 		return {
 			setRandomRace = function (self)
-				local rand_num = math.random(#Race);
+				local rand_num = math.random(#Race-2);
 				race = Race.getRace(rand_num);
 				index_RACE = rand_num;
 				texture:SetAllPoints();
